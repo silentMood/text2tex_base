@@ -237,13 +237,14 @@ def init_predefined_viewpoints(sample_space, init_dist, init_elev):
 def init_camera(dist, elev, azim, look_at_center, image_size, device):
     [x, y, z] = polar_to_xyz(azim, 90 - elev, dist)
 
-    camera_position = torch.tensor([x, y, z])
-
-    R = look_at_rotation(camera_position[None, :], at=look_at_center[None, :])
+    camera_position = torch.tensor([x, y, z], dtype=torch.float32)                                                                                  
+    lookat_position = torch.tensor([look_at_center[0], look_at_center[1], look_at_center[2]], dtype=torch.float32)                                  
+    print(camera_position, lookat_position)                                                                                                         
+                                                                                                                                                    
+    R = look_at_rotation(camera_position[None, :], at=lookat_position[None, :])
 
     T = -torch.bmm(R, camera_position[None, :, None])[:, :, 0]
 
-    R, T = look_at_view_transform(dist, elev, azim)
     image_size = torch.tensor([image_size, image_size]).unsqueeze(0)
     cameras = PerspectiveCameras(R=R, T=T, device=device, image_size=image_size)
 
