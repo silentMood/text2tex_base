@@ -3,9 +3,9 @@ scikit-learn
 opencv-python
 matplotlib
 imageio
-diffusers
+diffusers==0.26.2
 einops
-transformers
+transformers==4.38.0
 open-clip-torch
 gradio
 pytorch-lightning==1.9.1
@@ -13,5 +13,5 @@ omegaconf
 triton
 accelerate
 objaverse
-mathutils
 iopath==0.1.10
+torch==1.12.1+cu113
