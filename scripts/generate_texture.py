@@ -138,7 +138,12 @@ def init_args():
 
     # camera parameters NOTE need careful tuning!!!
     parser.add_argument("--test_camera", action="store_true")
-    parser.add_argument("--dist", type=float, default=1, 
+    # camera should looking at different direction with fixed center
+    # the camera always sit at center of the scene
+    # TODO remodify the object origin, let center of the object sit at the center of the scene (blender)
+    # TODO modify the dist to 0.1(DONE)
+    # TODO modify the camera direction and the prompt accordingly
+    parser.add_argument("--dist", type=float, default=0.1,
         help="distance to the camera from the object")
     parser.add_argument("--elev", type=float, default=0,
         help="the angle between the vector from the object to the camera and the horizontal plane")
@@ -214,7 +219,8 @@ if __name__ == "__main__":
     (
         dist_list, 
         elev_list, 
-        azim_list, 
+        azim_list,
+        look_at_center_list,
         sector_list,
         view_punishments
     ) = init_viewpoints(args.viewpoint_mode, args.num_viewpoints, args.dist, args.elev, principle_directions, 
@@ -269,11 +275,12 @@ if __name__ == "__main__":
     pre_dist_list = dist_list[:NUM_PRINCIPLE]
     pre_elev_list = elev_list[:NUM_PRINCIPLE]
     pre_azim_list = azim_list[:NUM_PRINCIPLE]
+    pre_look_at_center_list = look_at_center_list[:NUM_PRINCIPLE]
     pre_sector_list = sector_list[:NUM_PRINCIPLE]
     pre_view_punishments = view_punishments[:NUM_PRINCIPLE]
 
     pre_similarity_texture_cache = build_similarity_texture_cache_for_all_views(mesh, faces, new_verts_uvs,
-        pre_dist_list, pre_elev_list, pre_azim_list,
+        pre_dist_list, pre_elev_list, pre_azim_list, pre_look_at_center_list,
         args.image_size, args.image_size * args.render_simple_factor, args.uv_size, args.fragment_k,
         DEVICE
     )
@@ -286,7 +293,7 @@ if __name__ == "__main__":
         print("=> processing view {}...".format(view_idx))
 
         # sequentially pop the viewpoints
-        dist, elev, azim, sector = pre_dist_list[view_idx], pre_elev_list[view_idx], pre_azim_list[view_idx], pre_sector_list[view_idx] 
+        dist, elev, azim, look_at_center, sector = pre_dist_list[view_idx], pre_elev_list[view_idx], pre_azim_list[view_idx], pre_look_at_center_list[view_idx], pre_sector_list[view_idx] 
         prompt = " the {} view of {}".format(sector, args.prompt) if args.add_view_to_prompt else args.prompt
         print("=> generating image for prompt: {}...".format(prompt))
 
@@ -298,7 +305,7 @@ if __name__ == "__main__":
             init_images_tensor, normal_maps_tensor, depth_maps_tensor, similarity_tensor, 
             keep_mask_image, update_mask_image, generate_mask_image, 
             keep_mask_tensor, update_mask_tensor, generate_mask_tensor, all_mask_tensor, quad_mask_tensor,
-        ) = render_one_view_and_build_masks(dist, elev, azim, 
+        ) = render_one_view_and_build_masks(dist, elev, azim, look_at_center, 
             view_idx, view_idx, view_punishments, # => actual view idx and the sequence idx 
             pre_similarity_texture_cache, exist_texture,
             mesh, faces, new_verts_uvs,
@@ -348,7 +355,7 @@ if __name__ == "__main__":
             view_score,
             renderer, cameras, fragments,
             init_image, *_,
-        ) = render_one_view_and_build_masks(dist, elev, azim, 
+        ) = render_one_view_and_build_masks(dist, elev, azim, look_at_center,
             view_idx, view_idx, view_punishments, # => actual view idx and the sequence idx 
             pre_similarity_texture_cache, exist_texture,
             mesh, faces, new_verts_uvs,
@@ -447,11 +454,13 @@ if __name__ == "__main__":
         dist_list = dist_list[NUM_PRINCIPLE:]
         elev_list = elev_list[NUM_PRINCIPLE:]
         azim_list = azim_list[NUM_PRINCIPLE:]
+        # TODO detail check
+        look_at_center_list = look_at_center_list[NUM_PRINCIPLE:]
         sector_list = sector_list[NUM_PRINCIPLE:]
         view_punishments = view_punishments[NUM_PRINCIPLE:]
 
         similarity_texture_cache = build_similarity_texture_cache_for_all_views(mesh, faces, new_verts_uvs,
-            dist_list, elev_list, azim_list,
+            dist_list, elev_list, azim_list, look_at_center_list,
             args.image_size, args.image_size * args.render_simple_factor, args.uv_size, args.fragment_k,
             DEVICE
         )
@@ -465,9 +474,9 @@ if __name__ == "__main__":
             # 2.1. render and build masks
 
             # heuristically select the viewpoints
-            dist, elev, azim, sector, selected_view_ids, view_punishments = select_viewpoint(
+            dist, elev, azim, look_at_center, sector, selected_view_ids, view_punishments = select_viewpoint(
                 selected_view_ids, view_punishments,
-                args.update_mode, dist_list, elev_list, azim_list, sector_list, view_idx,
+                args.update_mode, dist_list, elev_list, azim_list, look_at_center_list, sector_list, view_idx,
                 similarity_texture_cache, exist_texture,
                 mesh, faces, new_verts_uvs,
                 args.image_size, args.fragment_k,
@@ -482,7 +491,7 @@ if __name__ == "__main__":
                 init_images_tensor, normal_maps_tensor, depth_maps_tensor, similarity_tensor, 
                 old_mask_image, update_mask_image, generate_mask_image, 
                 old_mask_tensor, update_mask_tensor, generate_mask_tensor, all_mask_tensor, quad_mask_tensor,
-            ) = render_one_view_and_build_masks(dist, elev, azim, 
+            ) = render_one_view_and_build_masks(dist, elev, azim, look_at_center,
                 selected_view_ids[-1], view_idx, view_punishments, # => actual view idx and the sequence idx 
                 similarity_texture_cache, exist_texture,
                 mesh, faces, new_verts_uvs,

@@ -77,18 +77,21 @@ def init_viewpoints(mode, sample_space, init_dist, init_elev, principle_directio
         (
             dist_list, 
             elev_list, 
-            azim_list, 
+            azim_list,
+            look_at_center_list,
             sector_list
         ) = init_predefined_viewpoints(sample_space, init_dist, init_elev)
 
-    elif mode == "hemisphere":
+    # TODO: useless
+    # elif mode == "hemisphere":
 
-        (
-            dist_list, 
-            elev_list, 
-            azim_list, 
-            sector_list
-        ) = init_hemisphere_viewpoints(sample_space, init_dist)
+    #     (
+    #         dist_list, 
+    #         elev_list, 
+    #         azim_list,
+    #         look_at_center_list,
+    #         sector_list
+    #     ) = init_hemisphere_viewpoints(sample_space, init_dist)
 
     else:
         raise NotImplementedError()
@@ -101,7 +104,8 @@ def init_viewpoints(mode, sample_space, init_dist, init_elev, principle_directio
         (
             dist_list, 
             elev_list, 
-            azim_list, 
+            azim_list,
+            look_at_center_list,
             sector_list,
             view_punishments
         ) = init_principle_viewpoints(
@@ -109,13 +113,14 @@ def init_viewpoints(mode, sample_space, init_dist, init_elev, principle_directio
             dist_list, 
             elev_list, 
             azim_list, 
+            look_at_center_list, 
             sector_list,
             view_punishments,
             use_shapenet,
             use_objaverse
         )
 
-    return dist_list, elev_list, azim_list, sector_list, view_punishments
+    return dist_list, elev_list, azim_list, look_at_center_list, sector_list, view_punishments
 
 
 def init_principle_viewpoints(
@@ -123,6 +128,7 @@ def init_principle_viewpoints(
     dist_list, 
     elev_list, 
     azim_list, 
+    look_at_center_list, 
     sector_list,
     view_punishments,
     use_shapenet=False,
@@ -134,6 +140,7 @@ def init_principle_viewpoints(
 
         pre_elev_list = [v for v in VIEWPOINTS[key]["elev"]]
         pre_azim_list = [v for v in VIEWPOINTS[key]["azim"]]
+        pre_look_at_center_list = [v for v in VIEWPOINTS[key]["look_at_center"]]
         pre_sector_list = [v for v in VIEWPOINTS[key]["sector"]]
 
         num_principle = 10
@@ -145,6 +152,7 @@ def init_principle_viewpoints(
 
         pre_elev_list = [v for v in VIEWPOINTS[key]["elev"]]
         pre_azim_list = [v for v in VIEWPOINTS[key]["azim"]]
+        pre_look_at_center_list = [v for v in VIEWPOINTS[key]["look_at_center"]]
         pre_sector_list = [v for v in VIEWPOINTS[key]["sector"]]
 
         num_principle = 10
@@ -154,6 +162,7 @@ def init_principle_viewpoints(
         num_principle = 6
         pre_elev_list = [v for v in VIEWPOINTS[num_principle]["elev"]]
         pre_azim_list = [v for v in VIEWPOINTS[num_principle]["azim"]]
+        pre_look_at_center_list = [v for v in VIEWPOINTS[num_principle]["look_at_center"]]
         pre_sector_list = [v for v in VIEWPOINTS[num_principle]["sector"]]
         pre_dist_list = [dist_list[0] for _ in range(num_principle)]
         pre_view_punishments = [0 for _ in range(num_principle)]
@@ -161,10 +170,11 @@ def init_principle_viewpoints(
     dist_list = pre_dist_list + dist_list
     elev_list = pre_elev_list + elev_list
     azim_list = pre_azim_list + azim_list
+    look_at_center_list = pre_look_at_center_list + look_at_center_list
     sector_list = pre_sector_list + sector_list
     view_punishments = pre_view_punishments + view_punishments
 
-    return dist_list, elev_list, azim_list, sector_list, view_punishments
+    return dist_list, elev_list, azim_list, look_at_center_list, sector_list, view_punishments
 
 
 def init_predefined_viewpoints(sample_space, init_dist, init_elev):
@@ -176,54 +186,62 @@ def init_predefined_viewpoints(sample_space, init_dist, init_elev):
     dist_list = [init_dist for _ in range(sample_space)] # always the same dist
     elev_list = [viewpoints["elev"][i] for i in range(sample_space)]
     azim_list = [viewpoints["azim"][i] for i in range(sample_space)]
+    look_at_center_list = [viewpoints["look_at_center"][i] for i in range(sample_space)]
     sector_list = [viewpoints["sector"][i] for i in range(sample_space)]
 
-    return dist_list, elev_list, azim_list, sector_list
+    return dist_list, elev_list, azim_list, look_at_center_list, sector_list
 
 
-def init_hemisphere_viewpoints(sample_space, init_dist):
-    """
-        y is up-axis
-    """
+# def init_hemisphere_viewpoints(sample_space, init_dist):
+#     """
+#         y is up-axis
+#     """
 
-    num_points = 2 * sample_space
-    ga = np.pi * (3. - np.sqrt(5.))  # golden angle in radians
+#     num_points = 2 * sample_space
+#     ga = np.pi * (3. - np.sqrt(5.))  # golden angle in radians
 
-    flags = []
-    elev_list = [] # degree
-    azim_list = [] # degree
+#     flags = []
+#     elev_list = [] # degree
+#     azim_list = [] # degree
 
-    for i in range(num_points):
-        y = 1 - (i / float(num_points - 1)) * 2  # y goes from 1 to -1
+#     for i in range(num_points):
+#         y = 1 - (i / float(num_points - 1)) * 2  # y goes from 1 to -1
 
-        # only take the north hemisphere
-        if y >= 0: 
-            flags.append(True)
-        else:
-            flags.append(False)
+#         # only take the north hemisphere
+#         if y >= 0: 
+#             flags.append(True)
+#         else:
+#             flags.append(False)
 
-        theta = ga * i  # golden angle increment
+#         theta = ga * i  # golden angle increment
 
-        elev_list.append(radian_to_degree(np.arcsin(y)))
-        azim_list.append(radian_to_degree(theta))
+#         elev_list.append(radian_to_degree(np.arcsin(y)))
+#         azim_list.append(radian_to_degree(theta))
 
-        radius = np.sqrt(1 - y * y)  # radius at y
-        x = np.cos(theta) * radius
-        z = np.sin(theta) * radius
+#         radius = np.sqrt(1 - y * y)  # radius at y
+#         x = np.cos(theta) * radius
+#         z = np.sin(theta) * radius
 
-    elev_list = [elev_list[i] for i in range(len(elev_list)) if flags[i]]
-    azim_list = [azim_list[i] for i in range(len(azim_list)) if flags[i]]
+#     elev_list = [elev_list[i] for i in range(len(elev_list)) if flags[i]]
+#     azim_list = [azim_list[i] for i in range(len(azim_list)) if flags[i]]
 
-    dist_list = [init_dist for _ in elev_list]
-    sector_list = ["good" for _ in elev_list] # HACK don't define sector names for now
+#     dist_list = [init_dist for _ in elev_list]
+#     sector_list = ["good" for _ in elev_list] # HACK don't define sector names for now
 
-    return dist_list, elev_list, azim_list, sector_list
+#     return dist_list, elev_list, azim_list, sector_list
 
 
 # ---------------- CAMERAS ----------------------
+# TODO Detail Check
+def init_camera(dist, elev, azim, look_at_center, image_size, device):
+    [x, y, z] = polar_to_xyz(azim, 90 - elev, dist)
 
+    camera_position = torch.tensor([x, y, z])
 
-def init_camera(dist, elev, azim, image_size, device):
+    R = look_at_rotation(camera_position[None, :], at=look_at_center[None, :])
+
+    T = -torch.bmm(R, camera_position[None, :, None])[:, :, 0]
+
     R, T = look_at_view_transform(dist, elev, azim)
     image_size = torch.tensor([image_size, image_size]).unsqueeze(0)
     cameras = PerspectiveCameras(R=R, T=T, device=device, image_size=image_size)

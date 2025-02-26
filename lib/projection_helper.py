@@ -70,9 +70,8 @@ def compute_view_heat(similarity_tensor, quad_mask_tensor):
 
     return heat
 
-
 def select_viewpoint(selected_view_ids, view_punishments,
-    mode, dist_list, elev_list, azim_list, sector_list, view_idx,
+    mode, dist_list, elev_list, azim_list, look_at_center_list, sector_list, view_idx,
     similarity_texture_cache, exist_texture,
     mesh, faces, verts_uvs,
     image_size, faces_per_pixel,
@@ -86,6 +85,7 @@ def select_viewpoint(selected_view_ids, view_punishments,
         dist = dist_list[view_idx % num_views]
         elev = elev_list[view_idx % num_views]
         azim = azim_list[view_idx % num_views]
+        look_at_center = look_at_center_list[view_idx % num_views]
         sector = sector_list[view_idx % num_views]
         
         selected_view_ids.append(view_idx % num_views)
@@ -105,7 +105,7 @@ def select_viewpoint(selected_view_ids, view_punishments,
             view_heat_list = []
             for sample_idx in tqdm(range(len(dist_list))):
 
-                view_heat, *_ = render_one_view_and_build_masks(dist_list[sample_idx], elev_list[sample_idx], azim_list[sample_idx], 
+                view_heat, *_ = render_one_view_and_build_masks(dist_list[sample_idx], elev_list[sample_idx], azim_list[sample_idx], look_at_center_list[sample_idx], 
                     sample_idx, sample_idx, view_punishments,
                     similarity_texture_cache, exist_texture,
                     mesh, faces, verts_uvs,
@@ -126,6 +126,7 @@ def select_viewpoint(selected_view_ids, view_punishments,
         dist = dist_list[selected_view_idx]
         elev = elev_list[selected_view_idx]
         azim = azim_list[selected_view_idx]
+        look_at_center = look_at_center_list[selected_view_idx]
         sector = sector_list[selected_view_idx]
 
         selected_view_ids.append(selected_view_idx)
@@ -139,6 +140,7 @@ def select_viewpoint(selected_view_ids, view_punishments,
         dist = dist_list[selected_view_idx]
         elev = elev_list[selected_view_idx]
         azim = azim_list[selected_view_idx]
+        look_at_center = look_at_center_list[selected_view_idx]
         sector = sector_list[selected_view_idx]
         
         selected_view_ids.append(selected_view_idx)
@@ -146,7 +148,7 @@ def select_viewpoint(selected_view_ids, view_punishments,
     else:
         raise NotImplementedError()
 
-    return dist, elev, azim, sector, selected_view_ids, view_punishments
+    return dist, elev, azim, look_at_center, sector, selected_view_ids, view_punishments
 
 
 @torch.no_grad()
@@ -263,13 +265,13 @@ def build_diffusion_mask(mesh_stuff,
 
 @torch.no_grad()
 def render_one_view(mesh,
-    dist, elev, azim,
+    dist, elev, azim, look_at_center,
     image_size, faces_per_pixel,
     device):
 
     # render the view
     cameras = init_camera(
-        dist, elev, azim,
+        dist, elev, azim, look_at_center,
         image_size, device
     )
     renderer = init_renderer(cameras,
@@ -291,7 +293,7 @@ def render_one_view(mesh,
 
 @torch.no_grad()
 def build_similarity_texture_cache_for_all_views(mesh, faces, verts_uvs,
-    dist_list, elev_list, azim_list,
+    dist_list, elev_list, azim_list, look_at_center_list,
     image_size, image_size_scaled, uv_size, faces_per_pixel,
     device):
 
@@ -301,7 +303,7 @@ def build_similarity_texture_cache_for_all_views(mesh, faces, verts_uvs,
     print("=> building similarity texture cache for all views...")
     for i in tqdm(range(num_candidate_views)):
         cameras, _, _, _, similarity_tensor, _, _ = render_one_view(mesh,
-            dist_list[i], elev_list[i], azim_list[i],
+            dist_list[i], elev_list[i], azim_list[i], look_at_center_list[i],
             image_size, faces_per_pixel, device)
 
         similarity_texture_cache[i] = build_backproject_mask(mesh, faces, verts_uvs, 
@@ -310,9 +312,9 @@ def build_similarity_texture_cache_for_all_views(mesh, faces, verts_uvs,
 
     return similarity_texture_cache
 
-
+# TODO
 @torch.no_grad()
-def render_one_view_and_build_masks(dist, elev, azim, 
+def render_one_view_and_build_masks(dist, elev, azim, look_at_center,
     selected_view_idx, view_idx, view_punishments,
     similarity_texture_cache, exist_texture,
     mesh, faces, verts_uvs,
@@ -325,7 +327,7 @@ def render_one_view_and_build_masks(dist, elev, azim,
         cameras, renderer,
         init_images_tensor, normal_maps_tensor, similarity_tensor, depth_maps_tensor, fragments
     ) = render_one_view(mesh,
-        dist, elev, azim,
+        dist, elev, azim, look_at_center,
         image_size, faces_per_pixel,
         device
     )
