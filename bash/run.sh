@@ -1,16 +1,16 @@
 python scripts/generate_texture.py \
-    --input_dir data/backpack/ \
-    --output_dir outputs/backpack \
+    --input_dir data/scene/ \
+    --output_dir outputs/scene \
     --obj_name mesh \
     --obj_file mesh.obj \
-    --prompt "orange backpack" \
+    --prompt "a japanese style living room" \
     --add_view_to_prompt \
     --ddim_steps 50 \
     --new_strength 1 \
     --update_strength 0.3 \
     --view_threshold 0.1 \
     --blend 0 \
-    --dist 1 \
+    --dist 0.1 \
     --num_viewpoints 36 \
     --viewpoint_mode predefined \
     --use_principle \
