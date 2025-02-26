@@ -15,3 +15,4 @@ accelerate
 objaverse
 iopath==0.1.10
 torch==1.12.1+cu113
+numpy==1.26.4
