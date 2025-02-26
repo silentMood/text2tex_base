@@ -140,7 +140,7 @@ def init_principle_viewpoints(
 
         pre_elev_list = [v for v in VIEWPOINTS[key]["elev"]]
         pre_azim_list = [v for v in VIEWPOINTS[key]["azim"]]
-        pre_look_at_center_list = [v for v in VIEWPOINTS[key]["look_at_center"]]
+        pre_look_at_center_list = [np.array(v) for v in VIEWPOINTS[key]["look_at_center"]]
         pre_sector_list = [v for v in VIEWPOINTS[key]["sector"]]
 
         num_principle = 10
@@ -152,7 +152,7 @@ def init_principle_viewpoints(
 
         pre_elev_list = [v for v in VIEWPOINTS[key]["elev"]]
         pre_azim_list = [v for v in VIEWPOINTS[key]["azim"]]
-        pre_look_at_center_list = [v for v in VIEWPOINTS[key]["look_at_center"]]
+        pre_look_at_center_list = [np.array(v) for v in VIEWPOINTS[key]["look_at_center"]]
         pre_sector_list = [v for v in VIEWPOINTS[key]["sector"]]
 
         num_principle = 10
@@ -162,7 +162,7 @@ def init_principle_viewpoints(
         num_principle = 6
         pre_elev_list = [v for v in VIEWPOINTS[num_principle]["elev"]]
         pre_azim_list = [v for v in VIEWPOINTS[num_principle]["azim"]]
-        pre_look_at_center_list = [v for v in VIEWPOINTS[num_principle]["look_at_center"]]
+        pre_look_at_center_list = [np.array(v) for v in VIEWPOINTS[num_principle]["look_at_center"]]
         pre_sector_list = [v for v in VIEWPOINTS[num_principle]["sector"]]
         pre_dist_list = [dist_list[0] for _ in range(num_principle)]
         pre_view_punishments = [0 for _ in range(num_principle)]
@@ -186,7 +186,7 @@ def init_predefined_viewpoints(sample_space, init_dist, init_elev):
     dist_list = [init_dist for _ in range(sample_space)] # always the same dist
     elev_list = [viewpoints["elev"][i] for i in range(sample_space)]
     azim_list = [viewpoints["azim"][i] for i in range(sample_space)]
-    look_at_center_list = [viewpoints["look_at_center"][i] for i in range(sample_space)]
+    look_at_center_list = [np.array(viewpoints["look_at_center"][i]) for i in range(sample_space)]
     sector_list = [viewpoints["sector"][i] for i in range(sample_space)]
 
     return dist_list, elev_list, azim_list, look_at_center_list, sector_list
