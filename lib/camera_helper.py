@@ -6,7 +6,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from pytorch3d.renderer import (
     PerspectiveCameras,
-    look_at_view_transform
+    look_at_view_transform,
+    look_at_rotation
 )
 
 # customized
