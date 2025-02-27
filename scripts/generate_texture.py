@@ -197,6 +197,7 @@ if __name__ == "__main__":
     
     # mesh_center
     MESH_CENTER_VECTOR = mesh_center[0].cpu().numpy()
+    MESH_SCALE_SCALAR = mesh_scale[0].cpu().numpy()[0]
 
     # gradient texture
     init_texture = Image.open("./samples/textures/dummy.png").convert("RGB").resize((args.uv_size, args.uv_size))
@@ -308,7 +309,7 @@ if __name__ == "__main__":
             init_images_tensor, normal_maps_tensor, depth_maps_tensor, similarity_tensor, 
             keep_mask_image, update_mask_image, generate_mask_image, 
             keep_mask_tensor, update_mask_tensor, generate_mask_tensor, all_mask_tensor, quad_mask_tensor,
-        ) = render_one_view_and_build_masks(dist, elev, azim, look_at_center + MESH_CENTER_VECTOR, 
+        ) = render_one_view_and_build_masks(dist, elev, azim, (look_at_center - MESH_CENTER_VECTOR) / MESH_SCALE_SCALAR, 
             view_idx, view_idx, view_punishments, # => actual view idx and the sequence idx 
             pre_similarity_texture_cache, exist_texture,
             mesh, faces, new_verts_uvs,
