@@ -305,7 +305,7 @@ if __name__ == "__main__":
             init_images_tensor, normal_maps_tensor, depth_maps_tensor, similarity_tensor, 
             keep_mask_image, update_mask_image, generate_mask_image, 
             keep_mask_tensor, update_mask_tensor, generate_mask_tensor, all_mask_tensor, quad_mask_tensor,
-        ) = render_one_view_and_build_masks(dist, elev, azim, look_at_center, 
+        ) = render_one_view_and_build_masks(dist, elev, azim, look_at_center * mesh_scale + mesh_center, 
             view_idx, view_idx, view_punishments, # => actual view idx and the sequence idx 
             pre_similarity_texture_cache, exist_texture,
             mesh, faces, new_verts_uvs,
@@ -314,326 +314,326 @@ if __name__ == "__main__":
             DEVICE, save_intermediate=True, smooth_mask=args.smooth_mask, view_threshold=args.view_threshold
         )
 
-        # 1.2. generate missing region
-        # NOTE first view still gets the mask for consistent ablations
-        if args.no_repaint and view_idx != 0:
-            actual_generate_mask_image = Image.fromarray((np.ones_like(np.array(generate_mask_image)) * 255.).astype(np.uint8))
-        else:
-            actual_generate_mask_image = generate_mask_image
+    #     # 1.2. generate missing region
+    #     # NOTE first view still gets the mask for consistent ablations
+    #     if args.no_repaint and view_idx != 0:
+    #         actual_generate_mask_image = Image.fromarray((np.ones_like(np.array(generate_mask_image)) * 255.).astype(np.uint8))
+    #     else:
+    #         actual_generate_mask_image = generate_mask_image
 
-        print("=> generate for view {}".format(view_idx))
-        generate_image, generate_image_before, generate_image_after = apply_controlnet_depth(controlnet, ddim_sampler, 
-            init_image.convert("RGBA"), prompt, args.new_strength, args.ddim_steps,
-            actual_generate_mask_image, keep_mask_image, depth_maps_tensor.permute(1, 2, 0).repeat(1, 1, 3).cpu().numpy(), 
-            args.a_prompt, args.n_prompt, args.guidance_scale, args.seed, args.eta, 1, DEVICE, args.blend)
+    #     print("=> generate for view {}".format(view_idx))
+    #     generate_image, generate_image_before, generate_image_after = apply_controlnet_depth(controlnet, ddim_sampler, 
+    #         init_image.convert("RGBA"), prompt, args.new_strength, args.ddim_steps,
+    #         actual_generate_mask_image, keep_mask_image, depth_maps_tensor.permute(1, 2, 0).repeat(1, 1, 3).cpu().numpy(), 
+    #         args.a_prompt, args.n_prompt, args.guidance_scale, args.seed, args.eta, 1, DEVICE, args.blend)
 
-        generate_image.save(os.path.join(inpainted_image_dir, "{}.png".format(view_idx)))
-        generate_image_before.save(os.path.join(inpainted_image_dir, "{}_before.png".format(view_idx)))
-        generate_image_after.save(os.path.join(inpainted_image_dir, "{}_after.png".format(view_idx)))
+    #     generate_image.save(os.path.join(inpainted_image_dir, "{}.png".format(view_idx)))
+    #     generate_image_before.save(os.path.join(inpainted_image_dir, "{}_before.png".format(view_idx)))
+    #     generate_image_after.save(os.path.join(inpainted_image_dir, "{}_after.png".format(view_idx)))
 
-        # 1.2.2 back-project and create texture
-        # NOTE projection mask = generate mask
-        init_texture, project_mask_image, exist_texture = backproject_from_image(
-            mesh, faces, new_verts_uvs, cameras, 
-            generate_image, generate_mask_image, generate_mask_image, init_texture, exist_texture, 
-            args.image_size * args.render_simple_factor, args.uv_size, args.fragment_k,
-            DEVICE
-        )
+    #     # 1.2.2 back-project and create texture
+    #     # NOTE projection mask = generate mask
+    #     init_texture, project_mask_image, exist_texture = backproject_from_image(
+    #         mesh, faces, new_verts_uvs, cameras, 
+    #         generate_image, generate_mask_image, generate_mask_image, init_texture, exist_texture, 
+    #         args.image_size * args.render_simple_factor, args.uv_size, args.fragment_k,
+    #         DEVICE
+    #     )
 
-        project_mask_image.save(os.path.join(mask_image_dir, "{}_project.png".format(view_idx)))
+    #     project_mask_image.save(os.path.join(mask_image_dir, "{}_project.png".format(view_idx)))
 
-        # update the mesh
-        mesh.textures = TexturesUV(
-            maps=transforms.ToTensor()(init_texture)[None, ...].permute(0, 2, 3, 1).to(DEVICE),
-            faces_uvs=faces.textures_idx[None, ...],
-            verts_uvs=new_verts_uvs[None, ...]
-        )
+    #     # update the mesh
+    #     mesh.textures = TexturesUV(
+    #         maps=transforms.ToTensor()(init_texture)[None, ...].permute(0, 2, 3, 1).to(DEVICE),
+    #         faces_uvs=faces.textures_idx[None, ...],
+    #         verts_uvs=new_verts_uvs[None, ...]
+    #     )
 
-        # 1.2.3. re: render 
-        # NOTE only the rendered image is needed - masks should be re-used
-        (
-            view_score,
-            renderer, cameras, fragments,
-            init_image, *_,
-        ) = render_one_view_and_build_masks(dist, elev, azim, look_at_center,
-            view_idx, view_idx, view_punishments, # => actual view idx and the sequence idx 
-            pre_similarity_texture_cache, exist_texture,
-            mesh, faces, new_verts_uvs,
-            args.image_size, args.fragment_k,
-            init_image_dir, mask_image_dir, normal_map_dir, depth_map_dir, similarity_map_dir,
-            DEVICE, save_intermediate=False, smooth_mask=args.smooth_mask, view_threshold=args.view_threshold
-        )
+    #     # 1.2.3. re: render 
+    #     # NOTE only the rendered image is needed - masks should be re-used
+    #     (
+    #         view_score,
+    #         renderer, cameras, fragments,
+    #         init_image, *_,
+    #     ) = render_one_view_and_build_masks(dist, elev, azim, look_at_center,
+    #         view_idx, view_idx, view_punishments, # => actual view idx and the sequence idx 
+    #         pre_similarity_texture_cache, exist_texture,
+    #         mesh, faces, new_verts_uvs,
+    #         args.image_size, args.fragment_k,
+    #         init_image_dir, mask_image_dir, normal_map_dir, depth_map_dir, similarity_map_dir,
+    #         DEVICE, save_intermediate=False, smooth_mask=args.smooth_mask, view_threshold=args.view_threshold
+    #     )
 
-        # 1.3. update blurry region
-        # only when: 1) use update flag; 2) there are contents to update; 3) there are enough contexts.
-        if not args.no_update and update_mask_tensor.sum() > 0 and update_mask_tensor.sum() / (all_mask_tensor.sum()) > 0.05:
-            print("=> update {} pixels for view {}".format(update_mask_tensor.sum().int(), view_idx))
-            diffused_image, diffused_image_before, diffused_image_after = apply_controlnet_depth(controlnet, ddim_sampler, 
-                init_image.convert("RGBA"), prompt, args.update_strength, args.ddim_steps,
-                update_mask_image, keep_mask_image, depth_maps_tensor.permute(1, 2, 0).repeat(1, 1, 3).cpu().numpy(), 
-                args.a_prompt, args.n_prompt, args.guidance_scale, args.seed, args.eta, 1, DEVICE, args.blend)
+    #     # 1.3. update blurry region
+    #     # only when: 1) use update flag; 2) there are contents to update; 3) there are enough contexts.
+    #     if not args.no_update and update_mask_tensor.sum() > 0 and update_mask_tensor.sum() / (all_mask_tensor.sum()) > 0.05:
+    #         print("=> update {} pixels for view {}".format(update_mask_tensor.sum().int(), view_idx))
+    #         diffused_image, diffused_image_before, diffused_image_after = apply_controlnet_depth(controlnet, ddim_sampler, 
+    #             init_image.convert("RGBA"), prompt, args.update_strength, args.ddim_steps,
+    #             update_mask_image, keep_mask_image, depth_maps_tensor.permute(1, 2, 0).repeat(1, 1, 3).cpu().numpy(), 
+    #             args.a_prompt, args.n_prompt, args.guidance_scale, args.seed, args.eta, 1, DEVICE, args.blend)
 
-            diffused_image.save(os.path.join(inpainted_image_dir, "{}_update.png".format(view_idx)))
-            diffused_image_before.save(os.path.join(inpainted_image_dir, "{}_update_before.png".format(view_idx)))
-            diffused_image_after.save(os.path.join(inpainted_image_dir, "{}_update_after.png".format(view_idx)))
+    #         diffused_image.save(os.path.join(inpainted_image_dir, "{}_update.png".format(view_idx)))
+    #         diffused_image_before.save(os.path.join(inpainted_image_dir, "{}_update_before.png".format(view_idx)))
+    #         diffused_image_after.save(os.path.join(inpainted_image_dir, "{}_update_after.png".format(view_idx)))
         
-            # 1.3.2. back-project and create texture
-            # NOTE projection mask = generate mask
-            init_texture, project_mask_image, exist_texture = backproject_from_image(
-                mesh, faces, new_verts_uvs, cameras, 
-                diffused_image, update_mask_image, update_mask_image, init_texture, exist_texture, 
-                args.image_size * args.render_simple_factor, args.uv_size, args.fragment_k,
-                DEVICE
-            )
+    #         # 1.3.2. back-project and create texture
+    #         # NOTE projection mask = generate mask
+    #         init_texture, project_mask_image, exist_texture = backproject_from_image(
+    #             mesh, faces, new_verts_uvs, cameras, 
+    #             diffused_image, update_mask_image, update_mask_image, init_texture, exist_texture, 
+    #             args.image_size * args.render_simple_factor, args.uv_size, args.fragment_k,
+    #             DEVICE
+    #         )
             
-            # update the mesh
-            mesh.textures = TexturesUV(
-                maps=transforms.ToTensor()(init_texture)[None, ...].permute(0, 2, 3, 1).to(DEVICE),
-                faces_uvs=faces.textures_idx[None, ...],
-                verts_uvs=new_verts_uvs[None, ...]
-            )
+    #         # update the mesh
+    #         mesh.textures = TexturesUV(
+    #             maps=transforms.ToTensor()(init_texture)[None, ...].permute(0, 2, 3, 1).to(DEVICE),
+    #             faces_uvs=faces.textures_idx[None, ...],
+    #             verts_uvs=new_verts_uvs[None, ...]
+    #         )
 
 
-        # 1.4. save generated assets
-        # save backprojected OBJ file
-        save_backproject_obj(
-            mesh_dir, "{}.obj".format(view_idx),
-            mesh_scale * mesh.verts_packed() + mesh_center if args.use_unnormalized else mesh.verts_packed(),
-            faces.verts_idx, new_verts_uvs, faces.textures_idx, init_texture, 
-            DEVICE
-        )
+    #     # 1.4. save generated assets
+    #     # save backprojected OBJ file
+    #     save_backproject_obj(
+    #         mesh_dir, "{}.obj".format(view_idx),
+    #         mesh_scale * mesh.verts_packed() + mesh_center if args.use_unnormalized else mesh.verts_packed(),
+    #         faces.verts_idx, new_verts_uvs, faces.textures_idx, init_texture, 
+    #         DEVICE
+    #     )
 
-        # save the intermediate view
-        inter_images_tensor, *_ = render(mesh, renderer)
-        inter_image = inter_images_tensor[0].cpu()
-        inter_image = inter_image.permute(2, 0, 1)
-        inter_image = transforms.ToPILImage()(inter_image).convert("RGB")
-        inter_image.save(os.path.join(interm_dir, "{}.png".format(view_idx)))
+    #     # save the intermediate view
+    #     inter_images_tensor, *_ = render(mesh, renderer)
+    #     inter_image = inter_images_tensor[0].cpu()
+    #     inter_image = inter_image.permute(2, 0, 1)
+    #     inter_image = transforms.ToPILImage()(inter_image).convert("RGB")
+    #     inter_image.save(os.path.join(interm_dir, "{}.png".format(view_idx)))
 
-        # save texture mask
-        exist_texture_image = exist_texture * 255. 
-        exist_texture_image = Image.fromarray(exist_texture_image.cpu().numpy().astype(np.uint8)).convert("L")
-        exist_texture_image.save(os.path.join(mesh_dir, "{}_texture_mask.png".format(view_idx)))
+    #     # save texture mask
+    #     exist_texture_image = exist_texture * 255. 
+    #     exist_texture_image = Image.fromarray(exist_texture_image.cpu().numpy().astype(np.uint8)).convert("L")
+    #     exist_texture_image.save(os.path.join(mesh_dir, "{}_texture_mask.png".format(view_idx)))
 
-    print("=> total generate time: {} s".format(time.time() - start_time))
+    # print("=> total generate time: {} s".format(time.time() - start_time))
 
-    # visualize viewpoints
-    visualize_principle_viewpoints(output_dir, pre_dist_list, pre_elev_list, pre_azim_list)
+    # # visualize viewpoints
+    # visualize_principle_viewpoints(output_dir, pre_dist_list, pre_elev_list, pre_azim_list)
 
-    # 2. update texture with RePaint 
+    # # 2. update texture with RePaint 
 
-    if args.update_steps > 0:
+    # if args.update_steps > 0:
 
-        update_dir = os.path.join(output_dir, "update")
-        os.makedirs(update_dir, exist_ok=True)
+    #     update_dir = os.path.join(output_dir, "update")
+    #     os.makedirs(update_dir, exist_ok=True)
 
-        init_image_dir = os.path.join(update_dir, "rendering")
-        os.makedirs(init_image_dir, exist_ok=True)
+    #     init_image_dir = os.path.join(update_dir, "rendering")
+    #     os.makedirs(init_image_dir, exist_ok=True)
 
-        normal_map_dir = os.path.join(update_dir, "normal")
-        os.makedirs(normal_map_dir, exist_ok=True)
+    #     normal_map_dir = os.path.join(update_dir, "normal")
+    #     os.makedirs(normal_map_dir, exist_ok=True)
 
-        mask_image_dir = os.path.join(update_dir, "mask")
-        os.makedirs(mask_image_dir, exist_ok=True)
+    #     mask_image_dir = os.path.join(update_dir, "mask")
+    #     os.makedirs(mask_image_dir, exist_ok=True)
 
-        depth_map_dir = os.path.join(update_dir, "depth")
-        os.makedirs(depth_map_dir, exist_ok=True)
+    #     depth_map_dir = os.path.join(update_dir, "depth")
+    #     os.makedirs(depth_map_dir, exist_ok=True)
 
-        similarity_map_dir = os.path.join(update_dir, "similarity")
-        os.makedirs(similarity_map_dir, exist_ok=True)
+    #     similarity_map_dir = os.path.join(update_dir, "similarity")
+    #     os.makedirs(similarity_map_dir, exist_ok=True)
 
-        inpainted_image_dir = os.path.join(update_dir, "inpainted")
-        os.makedirs(inpainted_image_dir, exist_ok=True)
+    #     inpainted_image_dir = os.path.join(update_dir, "inpainted")
+    #     os.makedirs(inpainted_image_dir, exist_ok=True)
 
-        mesh_dir = os.path.join(update_dir, "mesh")
-        os.makedirs(mesh_dir, exist_ok=True)
+    #     mesh_dir = os.path.join(update_dir, "mesh")
+    #     os.makedirs(mesh_dir, exist_ok=True)
 
-        interm_dir = os.path.join(update_dir, "intermediate")
-        os.makedirs(interm_dir, exist_ok=True)
+    #     interm_dir = os.path.join(update_dir, "intermediate")
+    #     os.makedirs(interm_dir, exist_ok=True)
 
-        dist_list = dist_list[NUM_PRINCIPLE:]
-        elev_list = elev_list[NUM_PRINCIPLE:]
-        azim_list = azim_list[NUM_PRINCIPLE:]
-        # TODO detail check
-        look_at_center_list = look_at_center_list[NUM_PRINCIPLE:]
-        sector_list = sector_list[NUM_PRINCIPLE:]
-        view_punishments = view_punishments[NUM_PRINCIPLE:]
+    #     dist_list = dist_list[NUM_PRINCIPLE:]
+    #     elev_list = elev_list[NUM_PRINCIPLE:]
+    #     azim_list = azim_list[NUM_PRINCIPLE:]
+    #     # TODO detail check
+    #     look_at_center_list = look_at_center_list[NUM_PRINCIPLE:]
+    #     sector_list = sector_list[NUM_PRINCIPLE:]
+    #     view_punishments = view_punishments[NUM_PRINCIPLE:]
 
-        similarity_texture_cache = build_similarity_texture_cache_for_all_views(mesh, faces, new_verts_uvs,
-            dist_list, elev_list, azim_list, look_at_center_list,
-            args.image_size, args.image_size * args.render_simple_factor, args.uv_size, args.fragment_k,
-            DEVICE
-        )
-        selected_view_ids = []
+    #     similarity_texture_cache = build_similarity_texture_cache_for_all_views(mesh, faces, new_verts_uvs,
+    #         dist_list, elev_list, azim_list, look_at_center_list,
+    #         args.image_size, args.image_size * args.render_simple_factor, args.uv_size, args.fragment_k,
+    #         DEVICE
+    #     )
+    #     selected_view_ids = []
 
-        print("=> start updating...")
-        start_time = time.time()
-        for view_idx in range(args.update_steps):
-            print("=> processing view {}...".format(view_idx))
+    #     print("=> start updating...")
+    #     start_time = time.time()
+    #     for view_idx in range(args.update_steps):
+    #         print("=> processing view {}...".format(view_idx))
             
-            # 2.1. render and build masks
+    #         # 2.1. render and build masks
 
-            # heuristically select the viewpoints
-            dist, elev, azim, look_at_center, sector, selected_view_ids, view_punishments = select_viewpoint(
-                selected_view_ids, view_punishments,
-                args.update_mode, dist_list, elev_list, azim_list, look_at_center_list, sector_list, view_idx,
-                similarity_texture_cache, exist_texture,
-                mesh, faces, new_verts_uvs,
-                args.image_size, args.fragment_k,
-                init_image_dir, mask_image_dir, normal_map_dir, depth_map_dir, similarity_map_dir,
-                DEVICE, False
-            )
+    #         # heuristically select the viewpoints
+    #         dist, elev, azim, look_at_center, sector, selected_view_ids, view_punishments = select_viewpoint(
+    #             selected_view_ids, view_punishments,
+    #             args.update_mode, dist_list, elev_list, azim_list, look_at_center_list, sector_list, view_idx,
+    #             similarity_texture_cache, exist_texture,
+    #             mesh, faces, new_verts_uvs,
+    #             args.image_size, args.fragment_k,
+    #             init_image_dir, mask_image_dir, normal_map_dir, depth_map_dir, similarity_map_dir,
+    #             DEVICE, False
+    #         )
 
-            (
-                view_score,
-                renderer, cameras, fragments,
-                init_image, normal_map, depth_map, 
-                init_images_tensor, normal_maps_tensor, depth_maps_tensor, similarity_tensor, 
-                old_mask_image, update_mask_image, generate_mask_image, 
-                old_mask_tensor, update_mask_tensor, generate_mask_tensor, all_mask_tensor, quad_mask_tensor,
-            ) = render_one_view_and_build_masks(dist, elev, azim, look_at_center,
-                selected_view_ids[-1], view_idx, view_punishments, # => actual view idx and the sequence idx 
-                similarity_texture_cache, exist_texture,
-                mesh, faces, new_verts_uvs,
-                args.image_size, args.fragment_k,
-                init_image_dir, mask_image_dir, normal_map_dir, depth_map_dir, similarity_map_dir,
-                DEVICE, save_intermediate=True, smooth_mask=args.smooth_mask, view_threshold=args.view_threshold
-            )
+    #         (
+    #             view_score,
+    #             renderer, cameras, fragments,
+    #             init_image, normal_map, depth_map, 
+    #             init_images_tensor, normal_maps_tensor, depth_maps_tensor, similarity_tensor, 
+    #             old_mask_image, update_mask_image, generate_mask_image, 
+    #             old_mask_tensor, update_mask_tensor, generate_mask_tensor, all_mask_tensor, quad_mask_tensor,
+    #         ) = render_one_view_and_build_masks(dist, elev, azim, look_at_center,
+    #             selected_view_ids[-1], view_idx, view_punishments, # => actual view idx and the sequence idx 
+    #             similarity_texture_cache, exist_texture,
+    #             mesh, faces, new_verts_uvs,
+    #             args.image_size, args.fragment_k,
+    #             init_image_dir, mask_image_dir, normal_map_dir, depth_map_dir, similarity_map_dir,
+    #             DEVICE, save_intermediate=True, smooth_mask=args.smooth_mask, view_threshold=args.view_threshold
+    #         )
 
-            # # -------------------- OPTION ZONE ------------------------
-            # # still generate for missing regions during refinement
-            # # NOTE this could take significantly more time to complete.
-            # if args.use_patch:
-            #     # 2.2.1 generate missing region
-            #     prompt = " the {} view of {}".format(sector, args.prompt) if args.add_view_to_prompt else args.prompt
-            #     print("=> generating image for prompt: {}...".format(prompt))
+    #         # # -------------------- OPTION ZONE ------------------------
+    #         # # still generate for missing regions during refinement
+    #         # # NOTE this could take significantly more time to complete.
+    #         # if args.use_patch:
+    #         #     # 2.2.1 generate missing region
+    #         #     prompt = " the {} view of {}".format(sector, args.prompt) if args.add_view_to_prompt else args.prompt
+    #         #     print("=> generating image for prompt: {}...".format(prompt))
 
-            #     if args.no_repaint:
-            #         generate_mask_image = Image.fromarray((np.ones_like(np.array(generate_mask_image)) * 255.).astype(np.uint8))
+    #         #     if args.no_repaint:
+    #         #         generate_mask_image = Image.fromarray((np.ones_like(np.array(generate_mask_image)) * 255.).astype(np.uint8))
 
-            #     print("=> generate {} pixels for view {}".format(generate_mask_tensor.sum().int(), view_idx))
-            #     generate_image, generate_image_before, generate_image_after = apply_controlnet_depth(controlnet, ddim_sampler, 
-            #         init_image.convert("RGBA"), prompt, args.new_strength, args.ddim_steps,
-            #         generate_mask_image, keep_mask_image, depth_maps_tensor.permute(1, 2, 0).repeat(1, 1, 3).cpu().numpy(), 
-            #         args.a_prompt, args.n_prompt, args.guidance_scale, args.seed, args.eta, 1, DEVICE, args.blend)
+    #         #     print("=> generate {} pixels for view {}".format(generate_mask_tensor.sum().int(), view_idx))
+    #         #     generate_image, generate_image_before, generate_image_after = apply_controlnet_depth(controlnet, ddim_sampler, 
+    #         #         init_image.convert("RGBA"), prompt, args.new_strength, args.ddim_steps,
+    #         #         generate_mask_image, keep_mask_image, depth_maps_tensor.permute(1, 2, 0).repeat(1, 1, 3).cpu().numpy(), 
+    #         #         args.a_prompt, args.n_prompt, args.guidance_scale, args.seed, args.eta, 1, DEVICE, args.blend)
 
-            #     generate_image.save(os.path.join(inpainted_image_dir, "{}_new.png".format(view_idx)))
-            #     generate_image_before.save(os.path.join(inpainted_image_dir, "{}_new_before.png".format(view_idx)))
-            #     generate_image_after.save(os.path.join(inpainted_image_dir, "{}_new_after.png".format(view_idx)))
+    #         #     generate_image.save(os.path.join(inpainted_image_dir, "{}_new.png".format(view_idx)))
+    #         #     generate_image_before.save(os.path.join(inpainted_image_dir, "{}_new_before.png".format(view_idx)))
+    #         #     generate_image_after.save(os.path.join(inpainted_image_dir, "{}_new_after.png".format(view_idx)))
 
-            #     # 2.2.2. back-project and create texture
-            #     # NOTE projection mask = generate mask
-            #     init_texture, project_mask_image, exist_texture = backproject_from_image(
-            #         mesh, faces, new_verts_uvs, cameras, 
-            #         generate_image, generate_mask_image, generate_mask_image, init_texture, exist_texture, 
-            #         args.image_size * args.render_simple_factor, args.uv_size, args.fragment_k,
-            #         DEVICE
-            #     )
+    #         #     # 2.2.2. back-project and create texture
+    #         #     # NOTE projection mask = generate mask
+    #         #     init_texture, project_mask_image, exist_texture = backproject_from_image(
+    #         #         mesh, faces, new_verts_uvs, cameras, 
+    #         #         generate_image, generate_mask_image, generate_mask_image, init_texture, exist_texture, 
+    #         #         args.image_size * args.render_simple_factor, args.uv_size, args.fragment_k,
+    #         #         DEVICE
+    #         #     )
 
-            #     project_mask_image.save(os.path.join(mask_image_dir, "{}_new_project.png".format(view_idx)))
+    #         #     project_mask_image.save(os.path.join(mask_image_dir, "{}_new_project.png".format(view_idx)))
 
-            #     # update the mesh
-            #     mesh.textures = TexturesUV(
-            #         maps=transforms.ToTensor()(init_texture)[None, ...].permute(0, 2, 3, 1).to(DEVICE),
-            #         faces_uvs=faces.textures_idx[None, ...],
-            #         verts_uvs=new_verts_uvs[None, ...]
-            #     )
+    #         #     # update the mesh
+    #         #     mesh.textures = TexturesUV(
+    #         #         maps=transforms.ToTensor()(init_texture)[None, ...].permute(0, 2, 3, 1).to(DEVICE),
+    #         #         faces_uvs=faces.textures_idx[None, ...],
+    #         #         verts_uvs=new_verts_uvs[None, ...]
+    #         #     )
 
-            #     # 2.2.4. save generated assets
-            #     # save backprojected OBJ file
-            #     save_backproject_obj(
-            #         mesh_dir, "{}_new.obj".format(view_idx),
-            #         mesh.verts_packed(), faces.verts_idx, new_verts_uvs, faces.textures_idx, init_texture, 
-            #         DEVICE
-            #     )
+    #         #     # 2.2.4. save generated assets
+    #         #     # save backprojected OBJ file
+    #         #     save_backproject_obj(
+    #         #         mesh_dir, "{}_new.obj".format(view_idx),
+    #         #         mesh.verts_packed(), faces.verts_idx, new_verts_uvs, faces.textures_idx, init_texture, 
+    #         #         DEVICE
+    #         #     )
 
-            # # -------------------- OPTION ZONE ------------------------
-
-
-            # 2.2. update existing region
-            prompt = " the {} view of {}".format(sector, args.prompt) if args.add_view_to_prompt else args.prompt
-            print("=> updating image for prompt: {}...".format(prompt))
-
-            if not args.no_update and update_mask_tensor.sum() > 0 and update_mask_tensor.sum() / (all_mask_tensor.sum()) > 0.05:
-                print("=> update {} pixels for view {}".format(update_mask_tensor.sum().int(), view_idx))
-                update_image, update_image_before, update_image_after = apply_controlnet_depth(controlnet, ddim_sampler, 
-                    init_image.convert("RGBA"), prompt, args.update_strength, args.ddim_steps,
-                    update_mask_image, old_mask_image, depth_maps_tensor.permute(1, 2, 0).repeat(1, 1, 3).cpu().numpy(), 
-                    args.a_prompt, args.n_prompt, args.guidance_scale, args.seed, args.eta, 1, DEVICE, args.blend)
-
-                update_image.save(os.path.join(inpainted_image_dir, "{}.png".format(view_idx)))
-                update_image_before.save(os.path.join(inpainted_image_dir, "{}_before.png".format(view_idx)))
-                update_image_after.save(os.path.join(inpainted_image_dir, "{}_after.png".format(view_idx)))
-            else:
-                print("=> nothing to update for view {}".format(view_idx))
-                update_image = init_image
-
-                old_mask_tensor += update_mask_tensor
-                update_mask_tensor[update_mask_tensor == 1] = 0 # HACK nothing to update
-
-                old_mask_image = transforms.ToPILImage()(old_mask_tensor)
-                update_mask_image = transforms.ToPILImage()(update_mask_tensor)
+    #         # # -------------------- OPTION ZONE ------------------------
 
 
-            # 2.3. back-project and create texture
-            # NOTE projection mask = update mask
-            init_texture, project_mask_image, exist_texture = backproject_from_image(
-                mesh, faces, new_verts_uvs, cameras, 
-                update_image, update_mask_image, update_mask_image, init_texture, exist_texture, 
-                args.image_size * args.render_simple_factor, args.uv_size, args.fragment_k,
-                DEVICE
-            )
+    #         # 2.2. update existing region
+    #         prompt = " the {} view of {}".format(sector, args.prompt) if args.add_view_to_prompt else args.prompt
+    #         print("=> updating image for prompt: {}...".format(prompt))
 
-            project_mask_image.save(os.path.join(mask_image_dir, "{}_project.png".format(view_idx)))
+    #         if not args.no_update and update_mask_tensor.sum() > 0 and update_mask_tensor.sum() / (all_mask_tensor.sum()) > 0.05:
+    #             print("=> update {} pixels for view {}".format(update_mask_tensor.sum().int(), view_idx))
+    #             update_image, update_image_before, update_image_after = apply_controlnet_depth(controlnet, ddim_sampler, 
+    #                 init_image.convert("RGBA"), prompt, args.update_strength, args.ddim_steps,
+    #                 update_mask_image, old_mask_image, depth_maps_tensor.permute(1, 2, 0).repeat(1, 1, 3).cpu().numpy(), 
+    #                 args.a_prompt, args.n_prompt, args.guidance_scale, args.seed, args.eta, 1, DEVICE, args.blend)
 
-            # update the mesh
-            mesh.textures = TexturesUV(
-                maps=transforms.ToTensor()(init_texture)[None, ...].permute(0, 2, 3, 1).to(DEVICE),
-                faces_uvs=faces.textures_idx[None, ...],
-                verts_uvs=new_verts_uvs[None, ...]
-            )
+    #             update_image.save(os.path.join(inpainted_image_dir, "{}.png".format(view_idx)))
+    #             update_image_before.save(os.path.join(inpainted_image_dir, "{}_before.png".format(view_idx)))
+    #             update_image_after.save(os.path.join(inpainted_image_dir, "{}_after.png".format(view_idx)))
+    #         else:
+    #             print("=> nothing to update for view {}".format(view_idx))
+    #             update_image = init_image
 
-            # 2.4. save generated assets
-            # save backprojected OBJ file            
-            save_backproject_obj(
-                mesh_dir, "{}.obj".format(view_idx),
-                mesh_scale * mesh.verts_packed() + mesh_center if args.use_unnormalized else mesh.verts_packed(),
-                faces.verts_idx, new_verts_uvs, faces.textures_idx, init_texture, 
-                DEVICE
-            )
+    #             old_mask_tensor += update_mask_tensor
+    #             update_mask_tensor[update_mask_tensor == 1] = 0 # HACK nothing to update
 
-            # save the intermediate view
-            inter_images_tensor, *_ = render(mesh, renderer)
-            inter_image = inter_images_tensor[0].cpu()
-            inter_image = inter_image.permute(2, 0, 1)
-            inter_image = transforms.ToPILImage()(inter_image).convert("RGB")
-            inter_image.save(os.path.join(interm_dir, "{}.png".format(view_idx)))
+    #             old_mask_image = transforms.ToPILImage()(old_mask_tensor)
+    #             update_mask_image = transforms.ToPILImage()(update_mask_tensor)
 
-            # save texture mask
-            exist_texture_image = exist_texture * 255. 
-            exist_texture_image = Image.fromarray(exist_texture_image.cpu().numpy().astype(np.uint8)).convert("L")
-            exist_texture_image.save(os.path.join(mesh_dir, "{}_texture_mask.png".format(view_idx)))
 
-        print("=> total update time: {} s".format(time.time() - start_time))
+    #         # 2.3. back-project and create texture
+    #         # NOTE projection mask = update mask
+    #         init_texture, project_mask_image, exist_texture = backproject_from_image(
+    #             mesh, faces, new_verts_uvs, cameras, 
+    #             update_image, update_mask_image, update_mask_image, init_texture, exist_texture, 
+    #             args.image_size * args.render_simple_factor, args.uv_size, args.fragment_k,
+    #             DEVICE
+    #         )
 
-        # post-process
-        if args.post_process:
-            del controlnet
-            del ddim_sampler
+    #         project_mask_image.save(os.path.join(mask_image_dir, "{}_project.png".format(view_idx)))
 
-            inpainting = get_inpainting(DEVICE)
-            post_texture = apply_inpainting_postprocess(inpainting, 
-                init_texture, 1-exist_texture[None, :, :, None], "", args.uv_size, args.uv_size, DEVICE)
+    #         # update the mesh
+    #         mesh.textures = TexturesUV(
+    #             maps=transforms.ToTensor()(init_texture)[None, ...].permute(0, 2, 3, 1).to(DEVICE),
+    #             faces_uvs=faces.textures_idx[None, ...],
+    #             verts_uvs=new_verts_uvs[None, ...]
+    #         )
 
-            save_backproject_obj(
-                mesh_dir, "{}_post.obj".format(view_idx),
-                mesh_scale * mesh.verts_packed() + mesh_center if args.use_unnormalized else mesh.verts_packed(),
-                faces.verts_idx, new_verts_uvs, faces.textures_idx, post_texture, 
-                DEVICE
-            )
+    #         # 2.4. save generated assets
+    #         # save backprojected OBJ file            
+    #         save_backproject_obj(
+    #             mesh_dir, "{}.obj".format(view_idx),
+    #             mesh_scale * mesh.verts_packed() + mesh_center if args.use_unnormalized else mesh.verts_packed(),
+    #             faces.verts_idx, new_verts_uvs, faces.textures_idx, init_texture, 
+    #             DEVICE
+    #         )
+
+    #         # save the intermediate view
+    #         inter_images_tensor, *_ = render(mesh, renderer)
+    #         inter_image = inter_images_tensor[0].cpu()
+    #         inter_image = inter_image.permute(2, 0, 1)
+    #         inter_image = transforms.ToPILImage()(inter_image).convert("RGB")
+    #         inter_image.save(os.path.join(interm_dir, "{}.png".format(view_idx)))
+
+    #         # save texture mask
+    #         exist_texture_image = exist_texture * 255. 
+    #         exist_texture_image = Image.fromarray(exist_texture_image.cpu().numpy().astype(np.uint8)).convert("L")
+    #         exist_texture_image.save(os.path.join(mesh_dir, "{}_texture_mask.png".format(view_idx)))
+
+    #     print("=> total update time: {} s".format(time.time() - start_time))
+
+    #     # post-process
+    #     if args.post_process:
+    #         del controlnet
+    #         del ddim_sampler
+
+    #         inpainting = get_inpainting(DEVICE)
+    #         post_texture = apply_inpainting_postprocess(inpainting, 
+    #             init_texture, 1-exist_texture[None, :, :, None], "", args.uv_size, args.uv_size, DEVICE)
+
+    #         save_backproject_obj(
+    #             mesh_dir, "{}_post.obj".format(view_idx),
+    #             mesh_scale * mesh.verts_packed() + mesh_center if args.use_unnormalized else mesh.verts_packed(),
+    #             faces.verts_idx, new_verts_uvs, faces.textures_idx, post_texture, 
+    #             DEVICE
+    #         )
     
-        # save viewpoints
-        save_viewpoints(args, output_dir, dist_list, elev_list, azim_list, selected_view_ids)
+    #     # save viewpoints
+    #     save_viewpoints(args, output_dir, dist_list, elev_list, azim_list, selected_view_ids)
 
-        # visualize viewpoints
-        visualize_refinement_viewpoints(output_dir, selected_view_ids, dist_list, elev_list, azim_list)
+    #     # visualize viewpoints
+    #     visualize_refinement_viewpoints(output_dir, selected_view_ids, dist_list, elev_list, azim_list)
