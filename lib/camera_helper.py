@@ -251,9 +251,9 @@ def init_camera(dist, elev, azim, at, image_size, device):
     """
     # 如果未指定观察中心，默认为原点
     if at is None:
-        at = ((0, 0, 0),)  # 默认看向原点
+        at = [0, 0, 0]  # 默认看向原点
     else:
-        at = ((at[0], at[1], at[2]),)
+        at = [at[0], at[1], at[2]]
     
     # 使用look_at_view_transform创建相机变换矩阵，现在包含at参数
     R, T = look_at_view_transform(dist, elev, azim, at=at)
