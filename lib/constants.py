@@ -169,8 +169,8 @@ VIEWPOINTS = {
             "back right",
             "back left",
             "back",
-            "top",
             "bottom",
+            "top",
         ]
     },
     12: {
@@ -436,14 +436,14 @@ VIEWPOINTS = {
             "back left",
             "back",
 
-            "top front",
-            "top right",
-            "top left",
-            "top right",
-            "top left",
-            "top right",
-            "top left",
-            "top back",
+            "bottom front",
+            "bottom right",
+            "bottom left",
+            "bottom right",
+            "bottom left",
+            "bottom right",
+            "bottom left",
+            "bottom back",
 
             "front right",
             "front left",
