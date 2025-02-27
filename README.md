@@ -1,3 +1,5 @@
+# RTX A4000 with multi cuda 11.3 image
+export HF_HOME="/workspace/huggingface_cache/"
 # Text2Tex: Text-driven Texture Synthesis via Diffusion Models
 
 <p align="center"><img src="docs/static/teaser/teaser.jpg" width="100%"/></p>
