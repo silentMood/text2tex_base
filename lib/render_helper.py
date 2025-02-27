@@ -62,6 +62,12 @@ def render(mesh, renderer, pad_value=10):
     def get_relative_depth_map(fragments, pad_value=pad_value):
         absolute_depth = fragments.zbuf[..., 0] # B, H, W
         no_depth = -1
+        
+        ep = absolute_depth[absolute_depth != no_depth]
+        if ep.numel() == 0:
+            relative_depth = absolute_depth.clone()
+            relative_depth[absolute_depth == no_depth] = pad_value
+            return relative_depth
 
         depth_min, depth_max = absolute_depth[absolute_depth != no_depth].min(), absolute_depth[absolute_depth != no_depth].max()
         target_min, target_max = 50, 255
