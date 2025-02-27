@@ -231,6 +231,8 @@ if __name__ == "__main__":
                             use_principle=True, 
                             use_shapenet=args.use_shapenet,
                             use_objaverse=args.use_objaverse)
+    # modify the camera look at position
+    look_at_center_list = [((v - MESH_CENTER_VECTOR) / MESH_SCALE_SCALAR) for v in look_at_center_list]
 
     # save args
     save_args(args, output_dir)
@@ -309,7 +311,7 @@ if __name__ == "__main__":
             init_images_tensor, normal_maps_tensor, depth_maps_tensor, similarity_tensor, 
             keep_mask_image, update_mask_image, generate_mask_image, 
             keep_mask_tensor, update_mask_tensor, generate_mask_tensor, all_mask_tensor, quad_mask_tensor,
-        ) = render_one_view_and_build_masks(dist, elev, azim, (look_at_center - MESH_CENTER_VECTOR) / MESH_SCALE_SCALAR, 
+        ) = render_one_view_and_build_masks(dist, elev, azim, look_at_center, 
             view_idx, view_idx, view_punishments, # => actual view idx and the sequence idx 
             pre_similarity_texture_cache, exist_texture,
             mesh, faces, new_verts_uvs,
