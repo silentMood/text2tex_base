@@ -234,33 +234,14 @@ def init_predefined_viewpoints(sample_space, init_dist, init_elev):
 
 # ---------------- CAMERAS ----------------------
 # TODO Detail Check
-def init_camera(dist, elev, azim, at, image_size, device):
-    """
-    初始化一个3D渲染相机
-    
-    参数:
-    dist - 相机到目标中心的距离
-    elev - 相机的仰角（度）
-    azim - 相机的方位角（度）
-    image_size - 渲染图像的大小（像素）
-    device - PyTorch计算设备
-    at - 相机观察的目标中心点，默认为坐标原点 [0,0,0]
-    
-    返回:
-    cameras - PyTorch3D相机对象
-    """
-    # 如果未指定观察中心，默认为原点
-    if at is None:
-        at = [0, 0, 0]  # 默认看向原点
-    else:
-        at = [at[0], at[1], at[2]]
-    
+def init_camera(dist, elev, azim, look_at_center, image_size, device):
+
+    at = torch.tensor([look_at_center[0], look_at_center[1], look_at_center[2]], dtype=torch.float32)    
     # 使用look_at_view_transform创建相机变换矩阵，现在包含at参数
     R, T = look_at_view_transform(dist, elev, azim, at=at)
-    
+
     # 格式化图像大小
     image_size = torch.tensor([image_size, image_size]).unsqueeze(0)
-    
     # 创建相机对象
     cameras = PerspectiveCameras(R=R, T=T, device=device, image_size=image_size)
     
