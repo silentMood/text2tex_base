@@ -201,6 +201,7 @@ if __name__ == "__main__":
     MESH_SCALE_SCALAR = mesh_scale[0].cpu().numpy()[0]
 
     # gradient texture
+    init_texture = Image.open("./samples/textures/dummy.png").convert("RGB").resize((args.uv_size, args.uv_size))
     init_albedo_texture = Image.open("./samples/textures/dummy.png").convert("RGB").resize((args.uv_size, args.uv_size))
     init_metallic_texture = Image.open("./samples/textures/dummy.png").convert("RGB").resize((args.uv_size, args.uv_size))
     init_roughness_texture = Image.open("./samples/textures/dummy.png").convert("RGB").resize((args.uv_size, args.uv_size))
