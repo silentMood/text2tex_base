@@ -271,7 +271,7 @@ def render_one_view(mesh,
 
     # render the view
     cameras = init_camera(
-        dist, elev, azim, look_at_center,
+        dist, elev, azim,
         image_size, device
     )
     renderer = init_renderer(cameras,
