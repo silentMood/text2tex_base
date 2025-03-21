@@ -51,6 +51,7 @@ from lib.projection_helper import (
     build_similarity_texture_cache_for_all_views
 )
 from lib.camera_helper import init_viewpoints
+from lib.camera_helper import init_camera
 
 # Setup
 if torch.cuda.is_available():
@@ -313,7 +314,7 @@ if __name__ == "__main__":
         print("=> generating image for prompt: {}...".format(prompt))
 
         # rebuild the component from args
-        cameras = init_camera(dist, elev, azim, look_at_center, args.image_size, DEVICE)
+        cameras = init_camera(dist, elev, azim, args.image_size, DEVICE)
         generate_mask_image = Image.open(os.path.join(mask_image_dir, "{}_new.png".format(view_idx))).convert("L")
 
         ############# albedo mesh

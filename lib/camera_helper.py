@@ -233,13 +233,20 @@ def init_predefined_viewpoints(sample_space, init_dist, init_elev):
 
 # ---------------- CAMERAS ----------------------
 # TODO Detail Check
-def init_camera(dist, elev, azim, look_at_center, image_size, device):
+def init_camera_v1(dist, elev, azim, look_at_center, image_size, device):
     
     look_at_center = torch.tensor(look_at_center, dtype=torch.float32)
     
     R, T = look_at_view_transform(dist, elev, azim)
     T = T - torch.matmul(look_at_center, R.transpose(1, 2))
     print(R, T)
+    image_size = torch.tensor([image_size, image_size]).unsqueeze(0)
+    cameras = PerspectiveCameras(R=R, T=T, device=device, image_size=image_size)
+
+    return cameras
+
+def init_camera(dist, elev, azim, image_size, device):
+    R, T = look_at_view_transform(dist, elev, azim)
     image_size = torch.tensor([image_size, image_size]).unsqueeze(0)
     cameras = PerspectiveCameras(R=R, T=T, device=device, image_size=image_size)
 
