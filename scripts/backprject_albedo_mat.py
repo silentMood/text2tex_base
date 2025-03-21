@@ -338,7 +338,7 @@ if __name__ == "__main__":
         save_backproject_obj(
             albedo_dir, "{}.obj".format(view_idx),
             mesh_scale * mesh.verts_packed() + mesh_center if args.use_unnormalized else mesh.verts_packed(),
-            faces.verts_idx, new_verts_uvs, faces.textures_idx, init_texture, 
+            faces.verts_idx, new_verts_uvs, faces.textures_idx, init_albedo_texture, 
             DEVICE
         )
         
@@ -360,7 +360,7 @@ if __name__ == "__main__":
         save_backproject_obj(
             metallic_dir, "{}.obj".format(view_idx),
             mesh_scale * mesh.verts_packed() + mesh_center if args.use_unnormalized else mesh.verts_packed(),
-            faces.verts_idx, new_verts_uvs, faces.textures_idx, init_texture, 
+            faces.verts_idx, new_verts_uvs, faces.textures_idx, init_metallic_texture, 
             DEVICE
         )
         
@@ -382,7 +382,7 @@ if __name__ == "__main__":
         save_backproject_obj(
             roughness_dir, "{}.obj".format(view_idx),
             mesh_scale * mesh.verts_packed() + mesh_center if args.use_unnormalized else mesh.verts_packed(),
-            faces.verts_idx, new_verts_uvs, faces.textures_idx, init_texture, 
+            faces.verts_idx, new_verts_uvs, faces.textures_idx, init_roughness_texture, 
             DEVICE
         )
 
